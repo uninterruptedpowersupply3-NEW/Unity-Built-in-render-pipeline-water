@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Quality Noise Texture Generator</title>
+    <style>
+        :root {
+            --bg-color: #2c3e50;
+            --panel-color: #34495e;
+            --text-color: #ecf0f1;
+            --accent-color: #3498db;
+            --border-color: #2c3e50;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .app-container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px; /* Limit max width for very large screens */
+        }
+
+        .controls-panel {
+            background-color: var(--panel-color);
+            padding: 20px;
+            border-radius: 8px;
+            width: 350px;
+            flex-shrink: 0;
+            height: calc(100vh - 40px);
+            overflow-y: auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        h1, h2 {
+            margin-top: 0;
+            color: var(--accent-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            font-weight: 600;
+        }
+
+        h1 {
+            font-size: 1.5em;
+        }
+
+        h2 {
+            font-size: 1.1em;
+            margin-top: 20px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .control-group.slider label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        #invert-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        input[type="number"], select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            box-sizing: border-box;
+        }
+        
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 20px 0;
+        }
+
+        button, .button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            background-color: var(--accent-color);
+            color: white;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            margin-top: 10px;
+            transition: background-color 0.2s;
+        }
+
+        button:hover, .button:hover {
+            background-color: #2980b9;
+        }
+
+        .canvas-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: calc(100vh - 40px);
+        }
+
+        canvas {
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="controls-panel">
+            <h1>Noise Generator</h1>
+
+            <div class="control-group">
+                <label for="noiseType">Noise Type</label>
+                <select id="noiseType">
+                    <option value="perlin" selected>Perlin (FBM) - For Foam/Warping</option>
+                    <option value="worley">Worley (F2-F1) - For Caustics/Cells</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="seed">Seed</label>
+                <input type="number" id="seed" value="1337">
+            </div>
+            
+            <div class="control-group">
+                <label for="resolution">Resolution</label>
+                <select id="resolution">
+                    <option value="256">256x256</option>
+                    <option value="512" selected>512x512</option>
+                    <option value="1024">1024x1024</option>
+                </select>
+            </div>
+
+            <hr>
+            <div id="perlin-controls">
+                <h2>Perlin (FBM) Controls</h2>
+                <div class="control-group slider">
+                    <label for="p-scale">Scale: <span id="p-scale-val"></span></label>
+                    <input type="range" id="p-scale" min="1" max="128" value="32" step="0.1">
+                </div>
+                <div class="control-group slider">
+                    <label for="p-octaves">Octaves: <span id="p-octaves-val"></span></label>
+                    <input type="range" id="p-octaves" min="1" max="10" value="6" step="1">
+                </div>
+                <div class="control-group slider">
+                    <label for="p-persistence">Persistence: <span id="p-persistence-val"></span></label>
+                    <input type="range" id="p-persistence" min="0.1" max="1.0" value="0.5" step="0.01">
+                </div>
+                <div class="control-group slider">
+                    <label for="p-lacunarity">Lacunarity: <span id="p-lacunarity-val"></span></label>
+                    <input type="range" id="p-lacunarity" min="1.0" max="4.0" value="2.0" step="0.01">
+                </div>
+            </div>
+
+            <div id="worley-controls" style="display:none;">
+                <h2>Worley Controls</h2>
+                <div class="control-group slider">
+                    <label for="w-cells">Cell Density: <span id="w-cells-val"></span></label>
+                    <input type="range" id="w-cells" min="2" max="64" value="12" step="1">
+                </div>
+            </div>
+
+            <hr>
+            <h2>Post-Processing</h2>
+             <div class="control-group slider">
+                <label for="exponent">Sharpness (Exponent): <span id="exponent-val"></span></label>
+                <input type="range" id="exponent" min="0.1" max="5.0" value="1.0" step="0.01">
+            </div>
+            <div class="control-group">
+                <label id="invert-label">
+                    <span>Invert Output</span>
+                    <input type="checkbox" id="invert">
+                </label>
+            </div>
+
+            <hr>
+            <button id="generateBtn">Generate Texture</button>
+            <a id="downloadBtn" class="button">Download as PNG</a>
+
+        </div>
+        <div class="canvas-container">
+            <canvas id="noiseCanvas" width="512" height="512"></canvas>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const canvas = document.getElementById('noiseCanvas');
+            const ctx = canvas.getContext('2d');
+            const settings = {
+                noiseType: document.getElementById('noiseType'),
+                seed: document.getElementById('seed'),
+                resolution: document.getElementById('resolution'),
+                pScale: document.getElementById('p-scale'),
+                pOctaves: document.getElementById('p-octaves'),
+                pPersistence: document.getElementById('p-persistence'),
+                pLacunarity: document.getElementById('p-lacunarity'),
+                wCells: document.getElementById('w-cells'),
+                exponent: document.getElementById('exponent'),
+                invert: document.getElementById('invert'),
+                generateBtn: document.getElementById('generateBtn'),
+                downloadBtn: document.getElementById('downloadBtn'),
+                perlinControls: document.getElementById('perlin-controls'),
+                worleyControls: document.getElementById('worley-controls'),
+            };
+            const valueSpans = {
+                'p-scale': document.getElementById('p-scale-val'),
+                'p-octaves': document.getElementById('p-octaves-val'),
+                'p-persistence': document.getElementById('p-persistence-val'),
+                'p-lacunarity': document.getElementById('p-lacunarity-val'),
+                'w-cells': document.getElementById('w-cells-val'),
+                'exponent': document.getElementById('exponent-val'),
+            };
+
+            // --- High-Quality Perlin Noise Class (Simplex-based) ---
+            // This implementation is designed for quality and control.
+            class PerlinNoise {
+                constructor(seed) {
+                    this.p = new Uint8Array(512);
+                    const prng = this.seededRandom(seed);
+                    for (let i = 0; i < 256; i++) this.p[i] = i;
+                    for (let i = 255; i > 0; i--) {
+                        const n = Math.floor(prng() * (i + 1));
+                        [this.p[i], this.p[n]] = [this.p[n], this.p[i]];
+                    }
+                    for (let i = 0; i < 256; i++) this.p[i + 256] = this.p[i];
+                }
+
+                seededRandom(seed) {
+                    let s = seed;
+                    return () => {
+                        s = Math.sin(s) * 10000;
+                        return s - Math.floor(s);
+                    };
+                }
+
+                grad4(i, x, y, z, w) {
+                    const h = i & 31;
+                    const u = h < 24 ? x : y;
+                    const v = h < 16 ? y : z;
+                    const p = h < 8 ? z : w;
+                    return ((h & 1) ? -u : u) + ((h & 2) ? -v : v) + ((h & 4) ? -p : p);
+                }
+                
+                noise4D(x, y, z, w) {
+                    const F4 = (Math.sqrt(5.0) - 1.0) / 4.0;
+                    const G4 = (5.0 - Math.sqrt(5.0)) / 20.0;
+                    let n0, n1, n2, n3, n4;
+                    const s = (x + y + z + w) * F4;
+                    const i = Math.floor(x + s), j = Math.floor(y + s), k = Math.floor(z + s), l = Math.floor(w + s);
+                    const t = (i + j + k + l) * G4;
+                    const X0 = i - t, Y0 = j - t, Z0 = k - t, W0 = l - t;
+                    const x0 = x - X0, y0 = y - Y0, z0 = z - Z0, w0 = w - W0;
+
+                    let c1 = (x0 > y0) ? 32 : 0;
+                    let c2 = (x0 > z0) ? 16 : 0;
+                    let c3 = (x0 > w0) ? 8 : 0;
+                    let c4 = (y0 > z0) ? 4 : 0;
+                    let c5 = (y0 > w0) ? 2 : 0;
+                    let c6 = (z0 > w0) ? 1 : 0;
+                    let c = c1 + c2 + c3 + c4 + c5 + c6;
+
+                    const i1 = (c >> 0) & 1, j1 = (c >> 1) & 1, k1 = (c >> 2) & 1, l1 = (c >> 3) & 1;
+                    const i2 = (c >> 4) & 1, j2 = (c >> 5) & 1, k2 = (c >> 6) & 1, l2 = (c >> 7) & 1;
+
+                    const x1 = x0 - i1 + G4, y1 = y0 - j1 + G4, z1 = z0 - k1 + G4, w1 = w0 - l1 + G4;
+                    const x2 = x0 - i2 + 2.0 * G4, y2 = y0 - j2 + 2.0 * G4, z2 = z0 - k2 + 2.0 * G4, w2 = w0 - l2 + 2.0 * G4;
+                    const x3 = x0 - 1.0 + 3.0 * G4, y3 = y0 - 1.0 + 3.0 * G4, z3 = z0 - 1.0 + 3.0 * G4, w3 = w0 - 1.0 + 3.0 * G4;
+
+                    const ii = i & 255, jj = j & 255, kk = k & 255, ll = l & 255;
+
+                    let t0 = 0.6 - x0*x0 - y0*y0 - z0*z0 - w0*w0;
+                    if (t0 < 0) n0 = 0;
+                    else { t0 *= t0; n0 = t0 * t0 * this.grad4(this.p[ii + this.p[jj + this.p[kk + this.p[ll]]]] % 32, x0, y0, z0, w0); }
+
+                    let t1 = 0.6 - x1*x1 - y1*y1 - z1*z1 - w1*w1;
+                    if (t1 < 0) n1 = 0;
+                    else { t1 *= t1; n1 = t1 * t1 * this.grad4(this.p[ii + i1 + this.p[jj + j1 + this.p[kk + k1 + this.p[ll + l1]]]] % 32, x1, y1, z1, w1); }
+                    
+                    let t2 = 0.6 - x2*x2 - y2*y2 - z2*z2 - w2*w2;
+                    if (t2 < 0) n2 = 0;
+                    else { t2 *= t2; n2 = t2 * t2 * this.grad4(this.p[ii + i2 + this.p[jj + j2 + this.p[kk + k2 + this.p[ll + l2]]]] % 32, x2, y2, z2, w2); }
+                    
+                    let t3 = 0.6 - x3*x3 - y3*y3 - z3*z3 - w3*w3;
+                    if (t3 < 0) n3 = 0;
+                    else { t3 *= t3; n3 = t3 * t3 * this.grad4(this.p[ii + 1 + this.p[jj + 1 + this.p[kk + 1 + this.p[ll + 1]]]] % 32, x3, y3, z3, w3); }
+
+                    return 27.0 * (n0 + n1 + n2 + n3);
+                }
+            }
+
+
+            // --- Event Listeners ---
+            const updateSliderValue = (e) => {
+                if (valueSpans[e.target.id]) {
+                    valueSpans[e.target.id].textContent = e.target.value;
+                }
+            };
+            Object.values(settings).forEach(el => {
+                if (el.type === 'range') {
+                    el.addEventListener('input', updateSliderValue);
+                    if (valueSpans[el.id]) valueSpans[el.id].textContent = el.value;
+                }
+            });
+
+            settings.noiseType.addEventListener('change', () => {
+                const isPerlin = settings.noiseType.value === 'perlin';
+                settings.perlinControls.style.display = isPerlin ? 'block' : 'none';
+                settings.worleyControls.style.display = isPerlin ? 'none' : 'block';
+            });
+
+            settings.generateBtn.addEventListener('click', generateTexture);
+            settings.downloadBtn.addEventListener('click', downloadCanvas);
+
+
+            // --- Core Generation Logic ---
+            function generateTexture() {
+                const size = parseInt(settings.resolution.value, 10);
+                canvas.width = size;
+                canvas.height = size;
+
+                const imageData = ctx.createImageData(size, size);
+                const data = imageData.data;
+                const type = settings.noiseType.value;
+                
+                let min = Infinity, max = -Infinity;
+
+                if (type === 'perlin') {
+                    const noiseValues = generatePerlinFBM(size);
+                    min = noiseValues.min;
+                    max = noiseValues.max;
+                    processAndDraw(data, size, noiseValues.values, min, max);
+                } else if (type === 'worley') {
+                    const noiseValues = generateWorley(size);
+                    min = noiseValues.min;
+                    max = noiseValues.max;
+                    processAndDraw(data, size, noiseValues.values, min, max);
+                }
+
+                ctx.putImageData(imageData, 0, 0);
+            }
+            
+            function processAndDraw(data, size, values, min, max) {
+                const exponent = parseFloat(settings.exponent.value);
+                const invert = settings.invert.checked;
+                const range = max - min;
+
+                for (let i = 0; i < values.length; i++) {
+                    let normalized = (values[i] - min) / range;
+                    
+                    normalized = Math.pow(normalized, exponent);
+                    if (invert) normalized = 1 - normalized;
+
+                    const color = Math.floor(normalized * 255);
+                    const index = i * 4;
+                    data[index] = color;
+                    data[index + 1] = color;
+                    data[index + 2] = color;
+                    data[index + 3] = 255;
+                }
+            }
+
+            // --- Perlin FBM Generation ---
+            function generatePerlinFBM(size) {
+                const seed = parseInt(settings.seed.value, 10);
+                const scale = parseFloat(settings.pScale.value);
+                const octaves = parseInt(settings.pOctaves.value, 10);
+                const persistence = parseFloat(settings.pPersistence.value);
+                const lacunarity = parseFloat(settings.pLacunarity.value);
+                
+                const noiseGen = new PerlinNoise(seed);
+                const r = scale; // radius for 4D mapping
+                const values = new Float32Array(size * size);
+                let min = Infinity, max = -Infinity;
+
+                for (let y = 0; y < size; y++) {
+                    for (let x = 0; x < size; x++) {
+                        let amplitude = 1;
+                        let frequency = 1;
+                        let noiseValue = 0;
+
+                        for (let i = 0; i < octaves; i++) {
+                            const u = (x / size) * 2 * Math.PI;
+                            const v = (y / size) * 2 * Math.PI;
+                            const nx = r * Math.cos(u) * frequency;
+                            const ny = r * Math.sin(u) * frequency;
+                            const nz = r * Math.cos(v) * frequency;
+                            const nw = r * Math.sin(v) * frequency;
+                            
+                            let sample = noiseGen.noise4D(nx, ny, nz, nw);
+                            noiseValue += sample * amplitude;
+                            
+                            amplitude *= persistence;
+                            frequency *= lacunarity;
+                        }
+                        
+                        const index = y * size + x;
+                        values[index] = noiseValue;
+                        if(noiseValue < min) min = noiseValue;
+                        if(noiseValue > max) max = noiseValue;
+                    }
+                }
+                return { values, min, max };
+            }
+
+            // --- Worley Noise Generation ---
+            function generateWorley(size) {
+                const seed = parseInt(settings.seed.value, 10);
+                const numCells = parseInt(settings.wCells.value, 10);
+                const prng = new PerlinNoise(seed).seededRandom(seed);
+                const values = new Float32Array(size * size);
+                let min = Infinity, max = -Infinity;
+
+                const points = [];
+                for (let i = 0; i < numCells * numCells; i++) {
+                    points.push({ x: prng() * size, y: prng() * size });
+                }
+
+                for (let y = 0; y < size; y++) {
+                    for (let x = 0; x < size; x++) {
+                        let dists = { f1: Infinity, f2: Infinity };
+
+                        for (let i = -1; i <= 1; i++) {
+                            for (let j = -1; j <= 1; j++) {
+                                for (const p of points) {
+                                    const px = p.x + i * size;
+                                    const py = p.y + j * size;
+                                    const dist = Math.sqrt((x - px) ** 2 + (y - py) ** 2);
+                                    
+                                    if (dist < dists.f1) {
+                                        dists.f2 = dists.f1;
+                                        dists.f1 = dist;
+                                    } else if (dist < dists.f2) {
+                                        dists.f2 = dist;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        let value = dists.f2 - dists.f1;
+                        const index = y * size + x;
+                        values[index] = value;
+                        if(value < min) min = value;
+                        if(value > max) max = value;
+                    }
+                }
+                return { values, min, max };
+            }
+
+            // --- Utility Functions ---
+            function downloadCanvas() {
+                const link = document.createElement('a');
+                const type = settings.noiseType.value;
+                const seed = settings.seed.value;
+                const res = settings.resolution.value;
+                link.download = `noise_${type}_${res}x${res}_${seed}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }
+
+            // Initial Generation
+            generateTexture();
+        });
+    </script>
+</body>
+</html>
