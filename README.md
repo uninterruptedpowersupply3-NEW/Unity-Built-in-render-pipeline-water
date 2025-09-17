@@ -7,3 +7,10 @@ Flat inf water (folder)
 <img width="1342" height="746" alt="image" src="https://github.com/user-attachments/assets/1847b718-276c-4a05-b6cc-67855934714d" />
 <img width="1331" height="740" alt="image" src="https://github.com/user-attachments/assets/a4dff9b0-e1fa-4f0c-8442-8094d785b33f" />
 
+
+better
+
+<img width="1357" height="746" alt="image" src="https://github.com/user-attachments/assets/49bdb7fc-21e7-40cf-bc31-f086bb39c78a" />
+<img width="1348" height="740" alt="image" src="https://github.com/user-attachments/assets/a0e47348-5a06-4143-8a00-f62156f7da93" />
+
+
