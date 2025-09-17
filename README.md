@@ -8,9 +8,11 @@ Flat inf water (folder)
 <img width="1331" height="740" alt="image" src="https://github.com/user-attachments/assets/a4dff9b0-e1fa-4f0c-8442-8094d785b33f" />
 
 
-better
+better water (folder name) NOISE GENERATOR HAS BEEN INCLUDED AS AN HTML FILE
 
 <img width="1357" height="746" alt="image" src="https://github.com/user-attachments/assets/49bdb7fc-21e7-40cf-bc31-f086bb39c78a" />
 <img width="1348" height="740" alt="image" src="https://github.com/user-attachments/assets/a0e47348-5a06-4143-8a00-f62156f7da93" />
+<img width="1354" height="741" alt="image" src="https://github.com/user-attachments/assets/5a2f27e1-054a-4ee5-b2c6-3ca5a7a363dc" />
+
 
 
